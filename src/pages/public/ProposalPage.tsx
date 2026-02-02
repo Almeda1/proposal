@@ -184,9 +184,9 @@ export function ProposalPage() {
                 Send Response
               </a>
 
-              {/* Replay Button */}
+              {/* Replay Button - UPDATED FOR INSTANT LOAD */}
               <button 
-                onClick={() => window.location.reload()} 
+                onClick={() => setPageState('question')} 
                 className="w-full md:w-auto px-8 py-4 rounded-xl bg-white text-blue-900 font-bold shadow-lg active:scale-95 transition-transform duration-150"
               >
                 Replay Proposal
