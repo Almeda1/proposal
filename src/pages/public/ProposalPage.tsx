@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import confetti from 'canvas-confetti';
 
 // --- CONFIGURATION ---
 const WHATSAPP_NUMBER = "2347080779953"; 
@@ -35,12 +36,73 @@ type PageState = 'question' | 'success' | 'error';
 export function ProposalPage() { 
   const [pageState, setPageState] = useState<PageState>('question');
   const [mounted, setMounted] = useState<boolean>(false);
+  
+  // Ref to store the interval ID so we can stop it later
+  const confettiInterval = useRef<any>(null);
 
   useEffect(() => {
     setMounted(true);
+    // Cleanup on unmount just in case
+    return () => {
+      if (confettiInterval.current) clearInterval(confettiInterval.current);
+      confetti.reset();
+    };
   }, []);
 
-  // --- OPTIMIZED ANIMATIONS ---
+  // --- FIREWORKS LOGIC ---
+  const handleSuccess = () => {
+    setPageState('success');
+    
+    // Duration of the fireworks
+    const duration = 3 * 1000; 
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    // Start the interval
+    const intervalId = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(intervalId);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      
+      confetti({ 
+        ...defaults, 
+        particleCount, 
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        colors: ['#ff0000', '#ff69b4', '#ffffff'] 
+      });
+      confetti({ 
+        ...defaults, 
+        particleCount, 
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        colors: ['#ff0000', '#ff69b4', '#ffffff'] 
+      });
+    }, 250);
+
+    // Save interval ID to ref
+    confettiInterval.current = intervalId;
+  };
+
+  // --- RESET LOGIC ---
+  const handleReplay = () => {
+    // 1. Stop the interval generating new confetti
+    if (confettiInterval.current) {
+      clearInterval(confettiInterval.current);
+      confettiInterval.current = null;
+    }
+    // 2. Immediately wipe the canvas of falling confetti
+    confetti.reset();
+    
+    // 3. Reset state
+    setPageState('question');
+  };
+
+  // --- STYLES ---
   const customStyles = `
     @keyframes floatUp {
       0% { transform: translateY(0) scale(0.5); opacity: 0; }
@@ -53,7 +115,7 @@ export function ProposalPage() {
       animation: floatUp 15s infinite linear;
       z-index: 0;
       opacity: 0;
-      will-change: transform; /* Critical for mobile perf */
+      will-change: transform;
     }
 
     @keyframes zoomIn {
@@ -85,7 +147,6 @@ export function ProposalPage() {
   return (
     <div 
       className="min-h-screen text-white font-sans overflow-x-hidden relative selection:bg-rose-500 flex flex-col items-center justify-center"
-      // Optimized Background Gradient
       style={{
         background: `
           radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.2) 0%, transparent 50%),
@@ -96,7 +157,7 @@ export function ProposalPage() {
     >
       <style>{customStyles}</style>
 
-      {/* --- REDUCED FLOATING ICONS (Count: 12) --- */}
+      {/* --- FLOATING ICONS --- */}
       <div className="fixed inset-0 pointer-events-none transition-all duration-500">
         {[...Array(12)].map((_, i) => (
           <div 
@@ -129,7 +190,6 @@ export function ProposalPage() {
         
         {/* --- STATE 1: THE QUESTION --- */}
         {pageState === 'question' && (
-          // Reduced backdrop blur to 'md'
           <div className="animate-fade-in bg-white/5 backdrop-blur-md border border-white/10 p-8 md:p-12 rounded-3xl shadow-xl">
             <div className="mb-8">
               <span className="inline-block px-4 py-1 rounded-full bg-blue-800/50 text-blue-200 border border-blue-400/30 font-semibold text-xs tracking-widest uppercase mb-6">
@@ -142,7 +202,7 @@ export function ProposalPage() {
 
             <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-6">
               <button
-                onClick={() => setPageState('success')}
+                onClick={handleSuccess}
                 className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xl font-bold rounded-full shadow-lg active:scale-95 transition-transform duration-150 flex justify-center items-center gap-2"
               >
                 <HeartIcon className="w-6 h-6" fill="currentColor" />
@@ -184,9 +244,9 @@ export function ProposalPage() {
                 Send Response
               </a>
 
-              {/* Replay Button - UPDATED FOR INSTANT LOAD */}
+              {/* Replay Button (UPDATED to call handleReplay) */}
               <button 
-                onClick={() => setPageState('question')} 
+                onClick={handleReplay} 
                 className="w-full md:w-auto px-8 py-4 rounded-xl bg-white text-blue-900 font-bold shadow-lg active:scale-95 transition-transform duration-150"
               >
                 Replay Proposal
